@@ -1,3 +1,6 @@
-fn main() {
-    println!("Hello, world!");
+use chromic::graph;
+
+fn main() -> anyhow::Result<()> {
+    let _ = graph::Graph::new();
+    Ok(())
 }
