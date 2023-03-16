@@ -81,3 +81,13 @@ impl Graph {
         self.0.clear_edges();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Graph;
+
+    #[test]
+    fn creating_new_graph_doesnt_panic() {
+        let _ = Graph::new();
+    }
+}
