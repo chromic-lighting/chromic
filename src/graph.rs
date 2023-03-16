@@ -84,10 +84,49 @@ impl Graph {
 
 #[cfg(test)]
 mod tests {
-    use super::Graph;
+    use super::*;
 
     #[test]
     fn creating_new_graph_doesnt_panic() {
         let _ = Graph::new();
+    }
+
+    #[test]
+    fn creating_some_nodes_and_an_edge_within_a_graph() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Node {
+            ports: HashMap::from([(
+                PortID {
+                    direction: PortDirection::Output,
+                    id: "out".into(),
+                },
+                Port {},
+            )]),
+        });
+        let n2 = graph.add_node(Node {
+            ports: HashMap::from([(
+                PortID {
+                    direction: PortDirection::Input,
+                    id: "in".into(),
+                },
+                Port {},
+            )]),
+        });
+        graph
+            .add_edge(
+                n1,
+                n2,
+                Edge(
+                    PortID {
+                        direction: PortDirection::Output,
+                        id: "out".into(),
+                    },
+                    PortID {
+                        direction: PortDirection::Input,
+                        id: "in".into(),
+                    },
+                ),
+            )
+            .unwrap();
     }
 }
