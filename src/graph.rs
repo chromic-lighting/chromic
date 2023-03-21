@@ -19,19 +19,21 @@ pub enum PortDirection {
 }
 pub struct Port {}
 
-pub struct Node {
-    pub ports: HashMap<PortID, Port>,
+pub trait Node {
+    fn get_ports(&self) -> HashMap<PortID, Port>;
+    fn has_port(&self, id: &PortID) -> bool;
 }
 
-impl Node {
-    pub fn has_port(&self, id: &PortID) -> bool {
-        self.ports.contains_key(id)
+use std::fmt;
+impl fmt::Debug for dyn Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Test implementation of debug")
     }
 }
 
 pub struct Edge(pub PortID, pub PortID);
 
-pub struct Graph(StableGraph<Node, Edge, Directed>);
+pub struct Graph(StableGraph<Box<dyn Node>, Edge, Directed>);
 
 impl Graph {
     pub fn new() -> Self {
@@ -46,16 +48,16 @@ impl Default for Graph {
 }
 
 impl Graph {
-    pub fn add_node(&mut self, node: Node) -> NodeIndex {
-        self.0.add_node(node)
+    pub fn add_node(&mut self, node: impl Node) -> NodeIndex {
+        self.0.add_node(Box::new(node))
     }
 
-    pub fn remove_node(&mut self, i: NodeIndex) -> Option<Node> {
+    pub fn remove_node(&mut self, i: NodeIndex) -> Option<Box<dyn Node>> {
         self.0.remove_node(i)
     }
 
-    pub fn get_node(&self, i: NodeIndex) -> Option<&Node> {
-        self.0.node_weight(i)
+    pub fn get_node(&self, i: NodeIndex) -> Option<&dyn Node> {
+        Some(self.0.node_weight(i)?.as_ref())
     }
 
     pub fn add_edge(
@@ -91,42 +93,28 @@ mod tests {
         let _ = Graph::new();
     }
 
+    #[derive(Debug, PartialEq)]
+    struct EmptyNode {}
+    impl Node for EmptyNode {
+        fn get_ports(&self) -> HashMap<PortID, Port> {
+            HashMap::new()
+        }
+        fn has_port(&self, _: &PortID) -> bool {
+            false
+        }
+    }
+
+    impl std::cmp::PartialEq for dyn Node {
+        fn eq(&self, other: &Self) -> bool {
+            format!("{:?}", self) == format!("{:?}", other)
+        }
+    }
+
     #[test]
-    fn creating_some_nodes_and_an_edge_within_a_graph() {
+    fn create_graph_and_add_node() {
         let mut graph = Graph::new();
-        let n1 = graph.add_node(Node {
-            ports: HashMap::from([(
-                PortID {
-                    direction: PortDirection::Output,
-                    id: "out".into(),
-                },
-                Port {},
-            )]),
-        });
-        let n2 = graph.add_node(Node {
-            ports: HashMap::from([(
-                PortID {
-                    direction: PortDirection::Input,
-                    id: "in".into(),
-                },
-                Port {},
-            )]),
-        });
-        graph
-            .add_edge(
-                n1,
-                n2,
-                Edge(
-                    PortID {
-                        direction: PortDirection::Output,
-                        id: "out".into(),
-                    },
-                    PortID {
-                        direction: PortDirection::Input,
-                        id: "in".into(),
-                    },
-                ),
-            )
-            .unwrap();
+        let n1 = graph.add_node(EmptyNode {});
+        let node = graph.get_node(n1).unwrap();
+        assert_eq!(node, &EmptyNode {} as &dyn Node)
     }
 }
