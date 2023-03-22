@@ -1,3 +1,5 @@
+//! Handles the graph logic, managing nodes and edges.
+
 use petgraph::{
     stable_graph::{EdgeIndex, NodeIndex, StableGraph},
     Directed,
@@ -7,12 +9,14 @@ use std::collections::HashMap;
 use smol_str::SmolStr;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// A unique identifier for each port on a node.
 pub struct PortID {
     pub id: SmolStr,
     pub direction: PortDirection,
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// Marks the direction of data flow through a port. A port can either be Input or Output.
 pub enum PortDirection {
     Input,
     Output,
@@ -33,11 +37,14 @@ impl fmt::Debug for dyn Node {
     }
 }
 
+/// An edge is a connection between two ports.
 pub struct Edge(pub PortID, pub PortID);
 
+/// A graph is a collection of nodes and edges.
 pub struct Graph(StableGraph<Box<dyn Node>, Edge, Directed>);
 
 impl Graph {
+    /// Create a new, empty graph.
     pub fn new() -> Self {
         Self(StableGraph::new())
     }
@@ -50,18 +57,22 @@ impl Default for Graph {
 }
 
 impl Graph {
+    /// Add a node to the graph.
     pub fn add_node(&mut self, node: Box<dyn Node>) -> NodeIndex {
         self.0.add_node(node)
     }
 
+    /// Remove a node from the graph, returning the node, if it exists.
     pub fn remove_node(&mut self, i: NodeIndex) -> Option<Box<dyn Node>> {
         self.0.remove_node(i)
     }
 
+    /// Get a specified node from the graph without removing it.
     pub fn get_node(&self, i: NodeIndex) -> Option<&dyn Node> {
         self.0.node_weight(i).map(|n| n.as_ref())
     }
 
+    /// Add an edge between two ports.
     pub fn add_edge(
         &mut self,
         a: NodeIndex,
@@ -81,6 +92,7 @@ impl Graph {
         }
     }
 
+    /// Remove all edges from the graph, e.g. disconnect everything from everything else.
     pub fn clear_edges(&mut self) {
         self.0.clear_edges();
     }
