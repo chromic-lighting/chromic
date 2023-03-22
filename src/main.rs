@@ -10,6 +10,7 @@
 // TODO: Make private again when no longer needed
 pub mod file;
 pub mod graph;
+pub mod nodes;
 
 /// A simple placeholder main function for now.
 ///
