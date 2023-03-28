@@ -84,6 +84,16 @@ impl Graph {
     }
 }
 
+impl Node for Box<dyn Node> {
+    fn get_ports(&self) -> HashMap<PortID, Port> {
+        self.as_ref().get_ports()
+    }
+
+    fn has_port(&self, id: &PortID) -> bool {
+        self.as_ref().has_port(id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,7 +124,7 @@ mod tests {
     fn create_graph_and_add_node() {
         let mut graph = Graph::new();
         let n1 = graph.add_node(Box::new(EmptyNode {}));
-        let node = graph.get_node(n1).unwrap();
-        assert_eq!(node, &EmptyNode {} as &dyn Node)
+        let node = graph.remove_node(n1).unwrap();
+        assert_eq!(node.as_ref(), &EmptyNode {} as &dyn Node)
     }
 }
