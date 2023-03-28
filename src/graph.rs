@@ -114,6 +114,38 @@ mod tests {
         }
     }
 
+    struct SimpleNode {}
+    impl Node for SimpleNode {
+        fn get_ports(&self) -> HashMap<PortID, Port> {
+            HashMap::from([
+                (
+                    PortID {
+                        id: "out".into(),
+                        direction: PortDirection::Output,
+                    },
+                    Port {},
+                ),
+                (
+                    PortID {
+                        id: "in".into(),
+                        direction: PortDirection::Input,
+                    },
+                    Port {},
+                ),
+            ])
+        }
+
+        fn has_port(&self, id: &PortID) -> bool {
+            if (id.id == SmolStr::from("out") && id.direction == PortDirection::Output)
+                || (id.id == SmolStr::from("in") && id.direction == PortDirection::Input)
+            {
+                true
+            } else {
+                false
+            }
+        }
+    }
+
     impl std::cmp::PartialEq for dyn Node {
         fn eq(&self, other: &Self) -> bool {
             format!("{:?}", self) == format!("{:?}", other)
@@ -125,6 +157,38 @@ mod tests {
         let mut graph = Graph::new();
         let n1 = graph.add_node(Box::new(EmptyNode {}));
         let node = graph.remove_node(n1).unwrap();
-        assert_eq!(node.as_ref(), &EmptyNode {} as &dyn Node)
+        assert_eq!(node.as_ref(), &EmptyNode {} as &dyn Node);
+    }
+    #[test]
+    fn create_graph_and_add_2_nodes() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Box::new(EmptyNode {}));
+        let n2 = graph.add_node(Box::new(EmptyNode {}));
+        let node1 = graph.remove_node(n1).unwrap();
+        let node2 = graph.remove_node(n2).unwrap();
+        assert_eq!(node1.as_ref(), &EmptyNode {} as &dyn Node);
+        assert_eq!(node2.as_ref(), &EmptyNode {} as &dyn Node);
+    }
+    #[test]
+    fn create_edge() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let n2 = graph.add_node(Box::new(SimpleNode {}));
+        let _ = graph
+            .add_edge(
+                n1,
+                n2,
+                Edge(
+                    PortID {
+                        id: "out".into(),
+                        direction: PortDirection::Output,
+                    },
+                    PortID {
+                        id: "in".into(),
+                        direction: PortDirection::Input,
+                    },
+                ),
+            )
+            .unwrap();
     }
 }
