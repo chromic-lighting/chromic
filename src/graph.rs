@@ -48,8 +48,8 @@ impl Default for Graph {
 }
 
 impl Graph {
-    pub fn add_node(&mut self, node: impl Node) -> NodeIndex {
-        self.0.add_node(Box::new(node))
+    pub fn add_node(&mut self, node: Box<dyn Node>) -> NodeIndex {
+        self.0.add_node(node)
     }
 
     pub fn remove_node(&mut self, i: NodeIndex) -> Option<Box<dyn Node>> {
@@ -113,7 +113,7 @@ mod tests {
     #[test]
     fn create_graph_and_add_node() {
         let mut graph = Graph::new();
-        let n1 = graph.add_node(EmptyNode {});
+        let n1 = graph.add_node(Box::new(EmptyNode {}));
         let node = graph.get_node(n1).unwrap();
         assert_eq!(node, &EmptyNode {} as &dyn Node)
     }
