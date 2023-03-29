@@ -10,6 +10,9 @@
 // TODO: Make private again when no longer needed
 pub mod graph;
 
+/// A simple placeholder main function for now.
+///
+/// TODO: Replace with actualy main function
 fn main() -> anyhow::Result<()> {
     let _ = graph::Graph::new();
     Ok(())
