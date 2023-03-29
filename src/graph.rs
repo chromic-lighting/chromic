@@ -72,6 +72,11 @@ impl Graph {
         self.0.node_weight(i).map(|n| n.as_ref())
     }
 
+    /// Mutably get a specified node from the graph without removing it.
+    pub fn get_mut_node(&mut self, i: NodeIndex) -> Option<&mut (dyn Node + 'static)> {
+        self.0.node_weight_mut(i).map(|n| n.as_mut())
+    }
+
     /// Add an edge between two ports.
     pub fn add_edge(
         &mut self,
@@ -176,6 +181,13 @@ mod tests {
         let mut graph = Graph::new();
         let n1 = graph.add_node(Box::new(SimpleNode {}));
         let node = graph.get_node(n1).unwrap();
+        assert_simplenode!(node);
+    }
+    #[test]
+    fn test_get_mut_node() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let node = graph.get_mut_node(n1).unwrap();
         assert_simplenode!(node);
     }
     #[test]
