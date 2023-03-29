@@ -11,11 +11,14 @@
 pub mod file;
 pub mod graph;
 pub mod nodes;
+pub mod update;
 
 /// A simple placeholder main function for now.
 ///
 /// TODO: Replace with actualy main function
 fn main() -> anyhow::Result<()> {
-    let _ = graph::Graph::new();
-    Ok(())
+    let mut g = graph::Graph::new();
+    loop {
+        g.render()?;
+    }
 }
