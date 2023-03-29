@@ -6,17 +6,19 @@ use std::collections::HashMap;
 
 use smol_str::SmolStr;
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct PortID {
     pub id: SmolStr,
     pub direction: PortDirection,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum PortDirection {
     Input,
     Output,
 }
+
+#[derive(Debug)]
 pub struct Port {}
 
 pub trait Node {
@@ -57,7 +59,7 @@ impl Graph {
     }
 
     pub fn get_node(&self, i: NodeIndex) -> Option<&dyn Node> {
-        Some(self.0.node_weight(i)?.as_ref())
+        self.0.node_weight(i).map(|n| n.as_ref())
     }
 
     pub fn add_edge(
@@ -104,16 +106,6 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq)]
-    struct EmptyNode {}
-    impl Node for EmptyNode {
-        fn get_ports(&self) -> HashMap<PortID, Port> {
-            HashMap::new()
-        }
-        fn has_port(&self, _: &PortID) -> bool {
-            false
-        }
-    }
-
     struct SimpleNode {}
     impl Node for SimpleNode {
         fn get_ports(&self) -> HashMap<PortID, Port> {
@@ -146,28 +138,43 @@ mod tests {
         }
     }
 
-    impl std::cmp::PartialEq for dyn Node {
-        fn eq(&self, other: &Self) -> bool {
-            format!("{:?}", self) == format!("{:?}", other)
-        }
+    macro_rules! assert_simplenode {
+        ($n:ident) => {
+            assert!(
+                $n.has_port(&PortID {
+                    id: "in".into(),
+                    direction: PortDirection::Input
+                }) && $n.has_port(&PortID {
+                    id: "in".into(),
+                    direction: PortDirection::Input
+                })
+            )
+        };
     }
 
     #[test]
     fn create_graph_and_add_node() {
         let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(EmptyNode {}));
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
         let node = graph.remove_node(n1).unwrap();
-        assert_eq!(node.as_ref(), &EmptyNode {} as &dyn Node);
+        assert_simplenode!(node);
+    }
+    #[test]
+    fn test_get_node() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let node = graph.get_node(n1).unwrap();
+        assert_simplenode!(node);
     }
     #[test]
     fn create_graph_and_add_2_nodes() {
         let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(EmptyNode {}));
-        let n2 = graph.add_node(Box::new(EmptyNode {}));
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let n2 = graph.add_node(Box::new(SimpleNode {}));
         let node1 = graph.remove_node(n1).unwrap();
         let node2 = graph.remove_node(n2).unwrap();
-        assert_eq!(node1.as_ref(), &EmptyNode {} as &dyn Node);
-        assert_eq!(node2.as_ref(), &EmptyNode {} as &dyn Node);
+        assert_simplenode!(node1);
+        assert_simplenode!(node2);
     }
     #[test]
     fn create_edge() {
