@@ -11,3 +11,4 @@ smol_str = "0.1.24"
 
 # Needed for GDTF parsing
 opengdtf = { git = "https://github.com/Firionus/opengdtf"}
+nom = "7.1.3"
