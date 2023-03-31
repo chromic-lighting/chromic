@@ -1,8 +1,7 @@
 # Chromic
 
-Chromic is a processing engine for video and lighting data. It is designed as a backend, for which various front-ends can be implemented.
+Chromic is a processing engine for video and lighting data.
 
-It is intended to unify Lighting and Video processing, as a single backend can be used, with a lighting frontend, and a video frontend both interacting with the same graph on the backend.
-This will allow very simple integration between the video and lighting systems.
+It is a graph based program for routing video and lighting data from generators, cues, etc to outputs (Video outputs, DMX outputs)
 
-It is designed so that data can flow through the graph from sources to outputs, but metadata can flow backwards.
+It is designed so that data can flow through the graph from sources to outputs, but metadata can flow backwards, allowing earlier nodes to easily adapt to changing outputs.

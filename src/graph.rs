@@ -1,3 +1,5 @@
+//! Handles the graph logic, managing nodes and edges.
+
 use petgraph::{
     stable_graph::{EdgeIndex, NodeIndex, StableGraph},
     Directed,
@@ -6,17 +8,21 @@ use std::collections::HashMap;
 
 use smol_str::SmolStr;
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// A unique identifier for each port on a node.
 pub struct PortID {
     pub id: SmolStr,
     pub direction: PortDirection,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// Marks the direction of data flow through a port. A port can either be Input or Output.
 pub enum PortDirection {
     Input,
     Output,
 }
+
+#[derive(Debug)]
 pub struct Port {}
 
 pub trait Node {
@@ -31,11 +37,14 @@ impl fmt::Debug for dyn Node {
     }
 }
 
+/// An edge is a connection between two ports.
 pub struct Edge(pub PortID, pub PortID);
 
+/// A graph is a collection of nodes and edges.
 pub struct Graph(StableGraph<Box<dyn Node>, Edge, Directed>);
 
 impl Graph {
+    /// Create a new, empty graph.
     pub fn new() -> Self {
         Self(StableGraph::new())
     }
@@ -48,18 +57,27 @@ impl Default for Graph {
 }
 
 impl Graph {
+    /// Add a node to the graph.
     pub fn add_node(&mut self, node: Box<dyn Node>) -> NodeIndex {
         self.0.add_node(node)
     }
 
+    /// Remove a node from the graph, returning the node, if it exists.
     pub fn remove_node(&mut self, i: NodeIndex) -> Option<Box<dyn Node>> {
         self.0.remove_node(i)
     }
 
+    /// Get a specified node from the graph without removing it.
     pub fn get_node(&self, i: NodeIndex) -> Option<&dyn Node> {
-        Some(self.0.node_weight(i)?.as_ref())
+        self.0.node_weight(i).map(|n| n.as_ref())
     }
 
+    /// Mutably get a specified node from the graph without removing it.
+    pub fn get_mut_node(&mut self, i: NodeIndex) -> Option<&mut (dyn Node + 'static)> {
+        self.0.node_weight_mut(i).map(|n| n.as_mut())
+    }
+
+    /// Add an edge between two ports.
     pub fn add_edge(
         &mut self,
         a: NodeIndex,
@@ -79,6 +97,7 @@ impl Graph {
         }
     }
 
+    /// Remove all edges from the graph, e.g. disconnect everything from everything else.
     pub fn clear_edges(&mut self) {
         self.0.clear_edges();
     }
@@ -104,16 +123,6 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq)]
-    struct EmptyNode {}
-    impl Node for EmptyNode {
-        fn get_ports(&self) -> HashMap<PortID, Port> {
-            HashMap::new()
-        }
-        fn has_port(&self, _: &PortID) -> bool {
-            false
-        }
-    }
-
     struct SimpleNode {}
     impl Node for SimpleNode {
         fn get_ports(&self) -> HashMap<PortID, Port> {
@@ -146,28 +155,50 @@ mod tests {
         }
     }
 
-    impl std::cmp::PartialEq for dyn Node {
-        fn eq(&self, other: &Self) -> bool {
-            format!("{:?}", self) == format!("{:?}", other)
-        }
+    macro_rules! assert_simplenode {
+        ($n:ident) => {
+            assert!(
+                $n.has_port(&PortID {
+                    id: "in".into(),
+                    direction: PortDirection::Input
+                }) && $n.has_port(&PortID {
+                    id: "in".into(),
+                    direction: PortDirection::Input
+                })
+            )
+        };
     }
 
     #[test]
     fn create_graph_and_add_node() {
         let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(EmptyNode {}));
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
         let node = graph.remove_node(n1).unwrap();
-        assert_eq!(node.as_ref(), &EmptyNode {} as &dyn Node);
+        assert_simplenode!(node);
+    }
+    #[test]
+    fn test_get_node() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let node = graph.get_node(n1).unwrap();
+        assert_simplenode!(node);
+    }
+    #[test]
+    fn test_get_mut_node() {
+        let mut graph = Graph::new();
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let node = graph.get_mut_node(n1).unwrap();
+        assert_simplenode!(node);
     }
     #[test]
     fn create_graph_and_add_2_nodes() {
         let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(EmptyNode {}));
-        let n2 = graph.add_node(Box::new(EmptyNode {}));
+        let n1 = graph.add_node(Box::new(SimpleNode {}));
+        let n2 = graph.add_node(Box::new(SimpleNode {}));
         let node1 = graph.remove_node(n1).unwrap();
         let node2 = graph.remove_node(n2).unwrap();
-        assert_eq!(node1.as_ref(), &EmptyNode {} as &dyn Node);
-        assert_eq!(node2.as_ref(), &EmptyNode {} as &dyn Node);
+        assert_simplenode!(node1);
+        assert_simplenode!(node2);
     }
     #[test]
     fn create_edge() {
