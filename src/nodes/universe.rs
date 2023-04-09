@@ -5,11 +5,15 @@ use crate::graph::Node;
 pub struct Universe {}
 
 impl Node for Universe {
-    fn get_ports(&self) -> std::collections::HashMap<crate::graph::PortID, crate::graph::Port> {
+    fn get_output(&self, _pid: crate::graph::PortID) -> crate::graph::data_types::Data {
         todo!()
     }
 
-    fn has_port(&self, _id: &crate::graph::PortID) -> bool {
+    fn get_ports(&self) -> std::collections::HashSet<crate::graph::PortID> {
+        todo!()
+    }
+
+    fn update(&self, _data: crate::graph::DataSet) -> anyhow::Result<()> {
         todo!()
     }
 }

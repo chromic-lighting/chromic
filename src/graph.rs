@@ -4,7 +4,7 @@ use petgraph::{
     stable_graph::{EdgeIndex, NodeIndex, StableGraph},
     Directed,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use smol_str::SmolStr;
 
@@ -22,12 +22,18 @@ pub enum PortDirection {
     Output,
 }
 
-#[derive(Debug)]
-pub struct Port {}
+pub mod data_types;
+
+pub struct DataSet(HashMap<PortID, data_types::Data>);
 
 pub trait Node {
-    fn get_ports(&self) -> HashMap<PortID, Port>;
-    fn has_port(&self, id: &PortID) -> bool;
+    fn get_output(&self, pid: PortID) -> data_types::Data;
+    fn get_ports(&self) -> HashSet<PortID>;
+    fn update(&self, data: DataSet) -> anyhow::Result<()>;
+    fn has_port(&self, pid: &PortID) -> bool {
+        let ports = self.get_ports();
+        ports.contains(pid)
+    }
 }
 
 use std::fmt;
@@ -104,17 +110,26 @@ impl Graph {
 }
 
 impl Node for Box<dyn Node> {
-    fn get_ports(&self) -> HashMap<PortID, Port> {
-        self.as_ref().get_ports()
-    }
-
     fn has_port(&self, id: &PortID) -> bool {
         self.as_ref().has_port(id)
+    }
+
+    fn get_output(&self, pid: PortID) -> data_types::Data {
+        self.as_ref().get_output(pid)
+    }
+
+    fn update(&self, data: DataSet) -> anyhow::Result<()> {
+        self.as_ref().update(data)
+    }
+
+    fn get_ports(&self) -> HashSet<PortID> {
+        self.as_ref().get_ports()
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -125,22 +140,16 @@ mod tests {
     #[derive(Debug, PartialEq)]
     struct SimpleNode {}
     impl Node for SimpleNode {
-        fn get_ports(&self) -> HashMap<PortID, Port> {
-            HashMap::from([
-                (
-                    PortID {
-                        id: "out".into(),
-                        direction: PortDirection::Output,
-                    },
-                    Port {},
-                ),
-                (
-                    PortID {
-                        id: "in".into(),
-                        direction: PortDirection::Input,
-                    },
-                    Port {},
-                ),
+        fn get_ports(&self) -> HashSet<PortID> {
+            HashSet::from([
+                PortID {
+                    id: "out".into(),
+                    direction: PortDirection::Output,
+                },
+                PortID {
+                    id: "in".into(),
+                    direction: PortDirection::Input,
+                },
             ])
         }
 
@@ -152,6 +161,14 @@ mod tests {
             } else {
                 false
             }
+        }
+
+        fn get_output(&self, _: PortID) -> data_types::Data {
+            unreachable!()
+        }
+
+        fn update(&self, _: DataSet) -> anyhow::Result<()> {
+            unreachable!()
         }
     }
 
