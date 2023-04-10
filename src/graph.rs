@@ -83,7 +83,7 @@ pub trait Node {
 use std::fmt;
 impl fmt::Debug for dyn Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Test implementation of debug")
+        writeln!(f, "Ports: {:?}", self.get_ports())
     }
 }
 
