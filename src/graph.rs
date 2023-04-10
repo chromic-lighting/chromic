@@ -16,11 +16,11 @@ pub enum PortID {
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// A unique identifier for each Input port on a node.
-pub struct InputPortID(SmolStr);
+pub struct InputPortID(pub SmolStr);
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// A unique identifier for each Output port on a node.
-pub struct OutputPortID(SmolStr);
+pub struct OutputPortID(pub SmolStr);
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// Marks the direction of data flow through a port. A port can either be Input or Output.
