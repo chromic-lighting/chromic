@@ -33,14 +33,51 @@ pub mod data_types;
 
 pub struct DataSet(HashMap<InputPortID, data_types::Data>);
 
+/**
+Common trait for all nodes in the graph.
+
+All nodes in the graph must implement Node.
+
+## During each cycle:
+- First ```requires_update()``` will be called, which should return false, except to mark that the node needs to update to interface with something external.
+- Then, if the output of the Node is needed by another node, or it has returned ```true``` from ```requires_update()```, then ```update()``` will be called.
+- Finally, ```get_output``` will be called for each output port that is consumed by another Node.
+
+
+ */
 pub trait Node {
+    /**
+    Get the output for a given output port
+
+    Any computation that is unique to each port should be here, so that it isn't executed if the port isn't used.
+    This output of this function should be based entirely on internal state, and should not have any effect on the internal state of the node.
+    */
     fn get_output(&self, pid: OutputPortID) -> data_types::Data;
+
+    /// Get a set of all the ports the Node supports
     fn get_ports(&self) -> HashSet<PortID>;
-    fn update(&self, data: DataSet) -> anyhow::Result<()>;
+
+    /// Check whether a given port exists in a Node
     fn has_port(&self, pid: &PortID) -> bool {
         let ports = self.get_ports();
         ports.contains(pid)
     }
+
+    /**
+    Returns positive if the node needs to update.
+
+    This function is only used to determain entry points, if an inner node does not requre an update, it should instead no-op on update.
+    */
+    fn requires_update(&self, _delta: std::time::Duration) -> bool {
+        false
+    }
+
+    /**
+    Update the state of a node given the set of inputs
+
+    This should be where most of the expensive compute takes place as this is only called once per cycle.
+    */
+    fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()>;
 }
 
 use std::fmt;
@@ -125,12 +162,12 @@ impl Node for Box<dyn Node> {
         self.as_ref().get_output(pid)
     }
 
-    fn update(&self, data: DataSet) -> anyhow::Result<()> {
-        self.as_ref().update(data)
-    }
-
     fn get_ports(&self) -> HashSet<PortID> {
         self.as_ref().get_ports()
+    }
+
+    fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()> {
+        self.as_ref().update(t, data)
     }
 }
 
@@ -165,7 +202,7 @@ mod tests {
             unreachable!()
         }
 
-        fn update(&self, _: DataSet) -> anyhow::Result<()> {
+        fn update(&self, _: std::time::Duration, _: DataSet) -> anyhow::Result<()> {
             unreachable!()
         }
     }

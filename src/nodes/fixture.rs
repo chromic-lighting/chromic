@@ -16,7 +16,7 @@ impl Node for Fixture {
         todo!()
     }
 
-    fn update(&self, _data: crate::graph::DataSet) -> anyhow::Result<()> {
+    fn update(&self, _: std::time::Duration, _data: crate::graph::DataSet) -> anyhow::Result<()> {
         todo!()
     }
 
