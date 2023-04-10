@@ -9,11 +9,18 @@ use std::collections::{HashMap, HashSet};
 use smol_str::SmolStr;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-/// A unique identifier for each port on a node.
-pub struct PortID {
-    pub id: SmolStr,
-    pub direction: PortDirection,
+pub enum PortID {
+    Input(InputPortID),
+    Output(OutputPortID),
 }
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// A unique identifier for each Input port on a node.
+pub struct InputPortID(SmolStr);
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+/// A unique identifier for each Output port on a node.
+pub struct OutputPortID(SmolStr);
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 /// Marks the direction of data flow through a port. A port can either be Input or Output.
@@ -24,10 +31,10 @@ pub enum PortDirection {
 
 pub mod data_types;
 
-pub struct DataSet(HashMap<PortID, data_types::Data>);
+pub struct DataSet(HashMap<InputPortID, data_types::Data>);
 
 pub trait Node {
-    fn get_output(&self, pid: PortID) -> data_types::Data;
+    fn get_output(&self, pid: OutputPortID) -> data_types::Data;
     fn get_ports(&self) -> HashSet<PortID>;
     fn update(&self, data: DataSet) -> anyhow::Result<()>;
     fn has_port(&self, pid: &PortID) -> bool {
@@ -114,7 +121,7 @@ impl Node for Box<dyn Node> {
         self.as_ref().has_port(id)
     }
 
-    fn get_output(&self, pid: PortID) -> data_types::Data {
+    fn get_output(&self, pid: OutputPortID) -> data_types::Data {
         self.as_ref().get_output(pid)
     }
 
@@ -142,28 +149,19 @@ mod tests {
     impl Node for SimpleNode {
         fn get_ports(&self) -> HashSet<PortID> {
             HashSet::from([
-                PortID {
-                    id: "out".into(),
-                    direction: PortDirection::Output,
-                },
-                PortID {
-                    id: "in".into(),
-                    direction: PortDirection::Input,
-                },
+                PortID::Output(OutputPortID("out".into())),
+                PortID::Input(InputPortID("in".into())),
             ])
         }
 
         fn has_port(&self, id: &PortID) -> bool {
-            if (id.id == SmolStr::from("out") && id.direction == PortDirection::Output)
-                || (id.id == SmolStr::from("in") && id.direction == PortDirection::Input)
-            {
-                true
-            } else {
-                false
+            match id {
+                PortID::Input(InputPortID(id)) => id == &SmolStr::from("in"),
+                PortID::Output(OutputPortID(id)) => id == &SmolStr::from("out"),
             }
         }
 
-        fn get_output(&self, _: PortID) -> data_types::Data {
+        fn get_output(&self, _: OutputPortID) -> data_types::Data {
             unreachable!()
         }
 
@@ -175,13 +173,8 @@ mod tests {
     macro_rules! assert_simplenode {
         ($n:ident) => {
             assert!(
-                $n.has_port(&PortID {
-                    id: "in".into(),
-                    direction: PortDirection::Input
-                }) && $n.has_port(&PortID {
-                    id: "in".into(),
-                    direction: PortDirection::Input
-                })
+                $n.has_port(&PortID::Input(InputPortID("in".into())))
+                    && $n.has_port(&PortID::Output(OutputPortID("out".into())))
             )
         };
     }
@@ -227,14 +220,8 @@ mod tests {
                 n1,
                 n2,
                 Edge(
-                    PortID {
-                        id: "out".into(),
-                        direction: PortDirection::Output,
-                    },
-                    PortID {
-                        id: "in".into(),
-                        direction: PortDirection::Input,
-                    },
+                    PortID::Output(OutputPortID("out".into())),
+                    PortID::Input(InputPortID("in".into())),
                 ),
             )
             .unwrap();

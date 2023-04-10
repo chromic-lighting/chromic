@@ -10,15 +10,15 @@ pub struct StaticColour {
 }
 
 impl Node for StaticColour {
-    fn get_output(&self, _pid: crate::graph::PortID) -> crate::graph::data_types::Data {
-        todo!()
-    }
-
     fn get_ports(&self) -> std::collections::HashSet<crate::graph::PortID> {
         todo!()
     }
 
     fn update(&self, _data: crate::graph::DataSet) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn get_output(&self, _pid: crate::graph::OutputPortID) -> crate::graph::data_types::Data {
         todo!()
     }
 }
