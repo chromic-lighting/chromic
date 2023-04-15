@@ -6,6 +6,8 @@
 //!
 //! It is designed so that data can flow through the graph from sources to outputs, but metadata can flow backwards, allowing earlier nodes to easily adapt to changing outputs.
 
+use std::{sync::mpsc, thread};
+
 // Public to prevent unused code warnings
 // TODO: Make private again when no longer needed
 pub mod cli;
@@ -14,12 +16,23 @@ pub mod graph;
 pub mod nodes;
 pub mod update;
 
-/// A simple placeholder main function for now.
-///
-/// TODO: Replace with actualy main function
 fn main() -> anyhow::Result<()> {
     let mut g = graph::Graph::new();
+    let (cmd_send, cmd_recv): (mpsc::Sender<cli::Command>, mpsc::Receiver<cli::Command>) =
+        mpsc::channel();
+
+    let cli_channel = cmd_send.clone();
+    let _cli_thread = thread::spawn(move || loop {
+        let _ = cli_channel;
+    });
+
+    let gui_channel = cmd_send.clone();
+    let _gui_thread = thread::spawn(move || loop {
+        let _ = gui_channel;
+    });
+
     loop {
         g.render()?;
+        g.client_update(&cmd_recv)?
     }
 }
