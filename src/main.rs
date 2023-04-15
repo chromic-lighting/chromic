@@ -14,12 +14,15 @@ pub mod graph;
 pub mod nodes;
 pub mod update;
 
+use std::time::Instant;
+
 /// A simple placeholder main function for now.
 ///
 /// TODO: Replace with actualy main function
 fn main() -> anyhow::Result<()> {
     let mut g = graph::Graph::new();
+    let t0 = Instant::now();
     loop {
-        g.render()?;
+        g.render(t0.elapsed())?;
     }
 }
