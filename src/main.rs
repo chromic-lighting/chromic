@@ -25,6 +25,6 @@ fn main() -> anyhow::Result<()> {
         g.render()?;
     }
     */
-    gui::run();
+    pollster::block_on(gui::run());
     Ok(())
 }
