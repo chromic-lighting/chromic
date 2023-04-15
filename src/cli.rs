@@ -12,7 +12,8 @@
 //! - Create Cue 7
 
 pub mod range;
-use range::*;
+
+use crate::command::*;
 
 use anyhow::Result;
 use nom::{
@@ -21,15 +22,6 @@ use nom::{
 };
 
 use crate::graph;
-
-/// An ID for a physical handle on some hardware, e.g. MIDI controller or keyboard.
-#[derive(Debug, Clone, PartialEq)]
-pub struct HandleID {
-    controller: usize,
-    section: usize,
-    page: usize,
-    handle: usize,
-}
 
 impl HandleID {
     pub fn parse(i: &str) -> IResult<&str, Self> {
@@ -41,16 +33,6 @@ impl From<Vec<u64>> for HandleID {
     fn from(_value: Vec<u64>) -> Self {
         todo!()
     }
-}
-
-/// An item to be operated on, e.g. a Fixture or Cue (Something that implements Node)
-#[derive(Clone, Debug, PartialEq)]
-pub enum Operand {
-    Fixture(ItemSelection),
-    Universe(ItemSelection),
-    Cue(ItemSelection),
-    Programmer(ItemSelection),
-    Handle(HandleID),
 }
 
 /// Parse a single type of Operator
@@ -74,22 +56,6 @@ impl Operand {
             Oper_Opand!("Handle", Operand::Handle, HandleID::parse),
         ))(i)
     }
-}
-
-/// A const set of paramaters
-#[derive(Debug, PartialEq)]
-pub struct Values {} // TODO: Figure out API
-
-/// A Command to be executed
-#[derive(Debug, PartialEq)]
-pub enum Command {
-    Clear(Operand),
-    Connect, // TODO: Figure out API
-    DeSelFix(Operand),
-    DeSelect(Operand),
-    SelFix(Operand),
-    Select(Operand),
-    Set(Operand, Values),
 }
 
 impl Command {

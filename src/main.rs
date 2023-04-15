@@ -11,6 +11,7 @@ use std::{sync::mpsc, thread};
 // Public to prevent unused code warnings
 // TODO: Make private again when no longer needed
 pub mod cli;
+pub mod command;
 pub mod file;
 pub mod graph;
 pub mod nodes;
@@ -18,8 +19,10 @@ pub mod update;
 
 fn main() -> anyhow::Result<()> {
     let mut g = graph::Graph::new();
-    let (cmd_send, cmd_recv): (mpsc::Sender<cli::Command>, mpsc::Receiver<cli::Command>) =
-        mpsc::channel();
+    let (cmd_send, cmd_recv): (
+        mpsc::Sender<command::Command>,
+        mpsc::Receiver<command::Command>,
+    ) = mpsc::channel();
 
     let cli_channel = cmd_send.clone();
     let _cli_thread = thread::spawn(move || loop {
