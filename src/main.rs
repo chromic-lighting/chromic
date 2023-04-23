@@ -26,7 +26,7 @@ fn main() -> anyhow::Result<()> {
 
     let cli_channel = cmd_send.clone();
     let _cli_thread = thread::spawn(move || {
-        cli::run(cli_channel);
+        cli::run(cli_channel).unwrap();
     });
 
     let gui_channel = cmd_send;
