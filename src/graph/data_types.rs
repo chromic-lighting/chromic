@@ -14,6 +14,6 @@ pub struct Universe {
 #[derive(Clone)]
 pub enum Data {
     Colour(Colour),
-    Universe(Universe),
+    Universe(Box<Universe>),
     MultiUniverse(Vec<Universe>),
 }
