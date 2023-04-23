@@ -29,7 +29,7 @@ fn main() -> anyhow::Result<()> {
         let _ = cli_channel;
     });
 
-    let gui_channel = cmd_send.clone();
+    let gui_channel = cmd_send;
     let _gui_thread = thread::spawn(move || loop {
         let _ = gui_channel;
     });
