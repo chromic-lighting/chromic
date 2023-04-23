@@ -25,8 +25,8 @@ fn main() -> anyhow::Result<()> {
     ) = mpsc::channel();
 
     let cli_channel = cmd_send.clone();
-    let _cli_thread = thread::spawn(move || loop {
-        let _ = cli_channel;
+    let _cli_thread = thread::spawn(move || {
+        cli::run(cli_channel);
     });
 
     let gui_channel = cmd_send;
