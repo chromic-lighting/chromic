@@ -34,11 +34,12 @@ pub mod data_types;
 
 pub struct DataSet(HashMap<InputPortID, data_types::Data>);
 
+#[derive(PartialEq)]
 pub enum NeedsUpdate {
     OnlyOnDependencyUpdate,
     Never,
     Once,
-    OnInterval(tokio::time::Interval, tokio::time::MissedTickBehavior),
+    OnInterval(tokio::time::Duration, tokio::time::MissedTickBehavior),
 }
 
 /**
@@ -153,6 +154,11 @@ impl Graph {
 
     pub fn get_nodes(&self) -> impl Iterator<Item = &dyn Node> {
         self.0.node_weights().map(|n| n.as_ref())
+    }
+
+    pub fn walk_upwards(&self) -> anyhow::Result<Vec<NodeIndex>> {
+        petgraph::algo::toposort(&self.0, None)
+            .map_err(|_| anyhow::anyhow!("Graph contained a cycle"))
     }
 }
 

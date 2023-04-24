@@ -1,22 +1,36 @@
 use crate::graph;
-use std::sync::mpsc;
+use tokio::sync::mpsc;
+
+use petgraph::stable_graph::NodeIndex;
 
 impl graph::Graph {
-    pub fn render(&mut self, t: std::time::Duration) -> Result<(), anyhow::Error> {
-        let needs_updating = self.get_nodes().filter(|n| n.requires_update(t));
+    pub async fn run(
+        &mut self,
+        _channel: &mpsc::Receiver<crate::command::Command>,
+    ) -> Result<(), anyhow::Error> {
+        let _t0 = tokio::time::Instant::now();
 
-        needs_updating.for_each(|n| update_node(self, n));
+        // Walk the graph,
+        let nodes: Vec<&dyn graph::Node> = self
+            .walk_upwards()?
+            .into_iter()
+            .map(|nodeindex: NodeIndex| self.get_node(nodeindex))
+            .collect::<Option<Vec<_>>>()
+            .expect("failed to lookup at least one node");
+
+        let _in_need_of_update: Vec<_> = nodes
+            .into_iter()
+            .map(|node| (node, node.requires_update()))
+            .filter(|(_node, ru)| {
+                *ru != graph::NeedsUpdate::Never
+                    && *ru != graph::NeedsUpdate::OnlyOnDependencyUpdate
+            })
+            .collect();
 
         Ok(())
     }
-
-    /// Function iterates through all messages currently in the channel, performing their operations on the graph.
-    pub fn client_update(
-        &mut self,
-        _channel: &mpsc::Receiver<crate::command::Command>,
-    ) -> anyhow::Result<()> {
-        todo!()
-    }
 }
 
-fn update_node(_g: &mut graph::Graph, _n: &dyn graph::Node) {}
+fn _get_dependencies(_of: NodeIndex) -> Vec<NodeIndex> {
+    todo!()
+}

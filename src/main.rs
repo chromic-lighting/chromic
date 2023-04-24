@@ -36,8 +36,6 @@ async fn main() -> anyhow::Result<()> {
         let _ = gui_channel;
     });
 
-    loop {
-        g.render(t0.elapsed())?;
-        g.client_update(&cmd_recv)?
-    }
+    g.run(&cmd_recv).await?;
+    Ok(())
 }
