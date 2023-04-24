@@ -90,6 +90,11 @@ impl fmt::Debug for dyn Node {
 /// An edge is a connection between two ports.
 pub struct Edge(pub PortID, pub PortID);
 
+pub struct NodeHolder {
+    node: Box<dyn Node>,
+    updated: bool,
+}
+
 /// A graph is a collection of nodes and edges.
 pub struct Graph(StableGraph<Box<dyn Node>, Edge, Directed>);
 
@@ -151,6 +156,10 @@ impl Graph {
     pub fn clear_edges(&mut self) {
         self.0.clear_edges();
     }
+
+    pub fn get_nodes(&self) -> impl Iterator<Item = &dyn Node> {
+        self.0.node_weights().map(|n| n.as_ref())
+    }
 }
 
 impl Node for Box<dyn Node> {
@@ -168,6 +177,10 @@ impl Node for Box<dyn Node> {
 
     fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()> {
         self.as_ref().update(t, data)
+    }
+
+    fn requires_update(&self, delta: std::time::Duration) -> bool {
+        self.as_ref().requires_update(delta)
     }
 }
 

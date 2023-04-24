@@ -6,7 +6,7 @@
 //!
 //! It is designed so that data can flow through the graph from sources to outputs, but metadata can flow backwards, allowing earlier nodes to easily adapt to changing outputs.
 
-use std::{sync::mpsc, thread};
+use std::{sync::mpsc, thread, time::Instant};
 
 // Public to prevent unused code warnings
 // TODO: Make private again when no longer needed
@@ -19,6 +19,7 @@ pub mod update;
 
 fn main() -> anyhow::Result<()> {
     let mut g = graph::Graph::new();
+    let t0 = Instant::now();
     let (cmd_send, cmd_recv): (
         mpsc::Sender<command::Command>,
         mpsc::Receiver<command::Command>,
@@ -35,7 +36,7 @@ fn main() -> anyhow::Result<()> {
     });
 
     loop {
-        g.render()?;
+        g.render(t0.elapsed())?;
         g.client_update(&cmd_recv)?
     }
 }
