@@ -1,6 +1,6 @@
 use petgraph::stable_graph::StableGraph;
 use std::ops::RangeInclusive;
-use std::sync::mpsc;
+use tokio::sync::oneshot;
 
 use crate::graph::{InputPortID, OutputPortID};
 
@@ -19,7 +19,7 @@ pub enum Command {
 }
 
 #[derive(Debug)]
-pub struct GraphLayoutReturnChannel(mpsc::Sender<GraphLayout>);
+pub struct GraphLayoutReturnChannel(oneshot::Sender<GraphLayout>);
 
 impl PartialEq for GraphLayoutReturnChannel {
     fn eq(&self, _: &Self) -> bool {
@@ -27,14 +27,15 @@ impl PartialEq for GraphLayoutReturnChannel {
     }
 }
 
+#[derive(Debug)]
 struct GraphLayout(StableGraph<SummaryNode, SummaryEdge>);
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 struct SummaryNode {
     name: String,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 struct SummaryEdge {
     data_type: String,
     output_port: OutputPortID,

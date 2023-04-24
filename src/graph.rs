@@ -6,6 +6,7 @@ use petgraph::{
 };
 use std::collections::{HashMap, HashSet};
 
+use async_trait::async_trait;
 use smol_str::SmolStr;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -33,19 +34,20 @@ pub mod data_types;
 
 pub struct DataSet(HashMap<InputPortID, data_types::Data>);
 
+pub enum NeedsUpdate {
+    OnlyOnDependencyUpdate,
+    Never,
+    Once,
+    OnInterval(tokio::time::Interval, tokio::time::MissedTickBehavior),
+}
+
 /**
 Common trait for all nodes in the graph.
 
 All nodes in the graph must implement Node.
-
-## During each cycle:
-- First ```requires_update()``` will be called, which should return false, except to mark that the node needs to update to interface with something external.
-- Then, if the output of the Node is needed by another node, or it has returned ```true``` from ```requires_update()```, then ```update()``` will be called.
-- Finally, ```get_output``` will be called for each output port that is consumed by another Node.
-
-
  */
-pub trait Node {
+#[async_trait]
+pub trait Node: Sync {
     /**
     Get the output for a given output port
 
@@ -64,12 +66,9 @@ pub trait Node {
     }
 
     /**
-    Returns positive if the node needs to update.
-
-    This function is only used to determain entry points, if an inner node does not requre an update, it should instead no-op on update.
-    */
-    fn requires_update(&self, _delta: std::time::Duration) -> bool {
-        false
+     */
+    fn requires_update(&self) -> NeedsUpdate {
+        NeedsUpdate::OnlyOnDependencyUpdate
     }
 
     /**
@@ -77,7 +76,7 @@ pub trait Node {
 
     This should be where most of the expensive compute takes place as this is only called once per cycle.
     */
-    fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()>;
+    async fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()>;
 }
 
 use std::fmt;
@@ -89,11 +88,6 @@ impl fmt::Debug for dyn Node {
 
 /// An edge is a connection between two ports.
 pub struct Edge(pub PortID, pub PortID);
-
-pub struct NodeHolder {
-    node: Box<dyn Node>,
-    updated: bool,
-}
 
 /// A graph is a collection of nodes and edges.
 pub struct Graph(StableGraph<Box<dyn Node>, Edge, Directed>);
@@ -162,6 +156,7 @@ impl Graph {
     }
 }
 
+#[async_trait]
 impl Node for Box<dyn Node> {
     fn has_port(&self, id: &PortID) -> bool {
         self.as_ref().has_port(id)
@@ -175,12 +170,12 @@ impl Node for Box<dyn Node> {
         self.as_ref().get_ports()
     }
 
-    fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()> {
-        self.as_ref().update(t, data)
+    async fn update(&self, t: std::time::Duration, data: DataSet) -> anyhow::Result<()> {
+        self.as_ref().update(t, data).await
     }
 
-    fn requires_update(&self, delta: std::time::Duration) -> bool {
-        self.as_ref().requires_update(delta)
+    fn requires_update(&self) -> NeedsUpdate {
+        self.as_ref().requires_update()
     }
 }
 
@@ -196,6 +191,8 @@ mod tests {
 
     #[derive(Debug, PartialEq)]
     struct SimpleNode {}
+
+    #[async_trait]
     impl Node for SimpleNode {
         fn get_ports(&self) -> HashSet<PortID> {
             HashSet::from([
@@ -215,7 +212,7 @@ mod tests {
             unreachable!()
         }
 
-        fn update(&self, _: std::time::Duration, _: DataSet) -> anyhow::Result<()> {
+        async fn update(&self, _: std::time::Duration, _: DataSet) -> anyhow::Result<()> {
             unreachable!()
         }
     }

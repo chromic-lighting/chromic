@@ -4,12 +4,17 @@ use crate::graph::Node;
 
 pub struct Universe {}
 
+#[async_trait::async_trait]
 impl Node for Universe {
     fn get_ports(&self) -> std::collections::HashSet<crate::graph::PortID> {
         todo!()
     }
 
-    fn update(&self, _: std::time::Duration, _data: crate::graph::DataSet) -> anyhow::Result<()> {
+    async fn update(
+        &self,
+        _: std::time::Duration,
+        _data: crate::graph::DataSet,
+    ) -> anyhow::Result<()> {
         todo!()
     }
 

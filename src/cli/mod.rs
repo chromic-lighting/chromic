@@ -1,7 +1,7 @@
 //! The Command Line Interface allows commands to be directly ran on the graph, seperate from the gui.
 
 use crate::command;
-use std::sync::mpsc;
+use tokio::sync::mpsc;
 
 use std::io;
 
@@ -13,6 +13,6 @@ pub fn run(channel: mpsc::Sender<command::Command>) -> anyhow::Result<()> {
     loop {
         stdin.read_line(&mut input)?;
         let (_, cmd) = command::Command::parse(&input).unwrap();
-        channel.send(cmd).unwrap();
+        channel.blocking_send(cmd).unwrap();
     }
 }

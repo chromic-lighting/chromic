@@ -8,12 +8,17 @@ use crate::graph::data_types::{Colour, Data};
 /// Contains a colour as defined in the CIE XYZ Colour space.
 pub struct StaticColour(Colour);
 
+#[async_trait::async_trait]
 impl graph::Node for StaticColour {
     fn get_ports(&self) -> HashSet<graph::PortID> {
         HashSet::from([graph::PortID::Output(graph::OutputPortID("Colour".into()))])
     }
 
-    fn update(&self, _: std::time::Duration, _data: crate::graph::DataSet) -> anyhow::Result<()> {
+    async fn update(
+        &self,
+        _: std::time::Duration,
+        _data: crate::graph::DataSet,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 
