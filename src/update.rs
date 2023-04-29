@@ -21,10 +21,6 @@ impl graph::Graph {
         let _in_need_of_update: Vec<_> = nodes
             .into_iter()
             .map(|node| (node, node.requires_update()))
-            .filter(|(_node, ru)| {
-                *ru != graph::NeedsUpdate::Never
-                    && *ru != graph::NeedsUpdate::OnlyOnDependencyUpdate
-            })
             .collect();
 
         Ok(())
