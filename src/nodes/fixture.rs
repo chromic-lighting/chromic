@@ -10,31 +10,15 @@ use crate::graph::Node;
 /// Represents a fixture in the graph.
 pub struct Fixture {}
 
-// TODO
-#[async_trait::async_trait]
-impl Node for Fixture {
-    fn get_ports(&self) -> std::collections::HashSet<crate::graph::PortID> {
-        todo!()
-    }
-
-    async fn update(
-        &self,
-        _: std::time::Duration,
-        _data: crate::graph::DataSet,
-    ) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    fn get_output(&self, _pid: crate::graph::OutputPortID) -> crate::graph::data_types::Data {
-        todo!()
-    }
-}
-
 impl Default for Fixture {
     fn default() -> Self {
         todo!()
     }
 }
+
+// TODO
+#[async_trait::async_trait]
+impl Node for Fixture {}
 
 /// A wrapper around File that holds GDTF files.
 pub struct GDTFFile(File);

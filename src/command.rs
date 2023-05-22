@@ -1,8 +1,7 @@
 use petgraph::stable_graph::StableGraph;
+use smol_str::SmolStr;
 use std::ops::RangeInclusive;
 use tokio::sync::oneshot;
-
-use crate::graph::{InputPortID, OutputPortID};
 
 /// A Command to be executed
 #[derive(Debug, PartialEq)]
@@ -38,8 +37,8 @@ struct SummaryNode {
 #[derive(Debug, PartialEq)]
 struct SummaryEdge {
     data_type: String,
-    output_port: OutputPortID,
-    input_port: InputPortID,
+    output_port: SmolStr,
+    input_port: SmolStr,
 }
 
 /// An ID for a physical handle on some hardware, e.g. MIDI controller or keyboard.
