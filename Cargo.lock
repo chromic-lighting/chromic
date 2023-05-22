@@ -185,6 +185,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "delegate"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d358e0ec5c59a5e1603b933def447096886121660fc680dc1e64a0753981fe3c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -207,6 +218,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "either"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
 
 [[package]]
 name = "fixedbitset"
@@ -301,6 +318,15 @@ checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg",
  "hashbrown",
+]
+
+[[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -399,10 +425,12 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "opengdtf"
 version = "0.1.0"
-source = "git+https://github.com/Firionus/opengdtf#327de9b9c7b8c8d168693d46e9df78a97e05b354"
+source = "git+https://github.com/Firionus/opengdtf#54079877d759732da6deddc46182110fafd230a2"
 dependencies = [
+ "delegate",
  "derive_more",
  "getset",
+ "itertools",
  "petgraph",
  "roxmltree",
  "strum",
