@@ -15,6 +15,7 @@ use tokio::{
 
 pub mod data_types;
 
+#[derive(Debug)]
 pub enum NodeCtrl {
     SetChannel(SmolStr, watch::Receiver<data_types::Data>),
     GetChannel(SmolStr, oneshot::Sender<watch::Receiver<data_types::Data>>),
@@ -28,11 +29,10 @@ All nodes in the graph must implement Node.
  */
 #[async_trait]
 pub trait Node: Sync {
-    async fn run(&self, cmd_chan: mpsc::Receiver<NodeCtrl>) {}
+    async fn run(&self, cmd_chan: mpsc::Receiver<NodeCtrl>);
 }
 
 pub struct NodeContainer {
-    node: Box<dyn Node>,
     handle: task::JoinHandle<()>,
     cmd_channel: mpsc::Sender<NodeCtrl>,
 }
@@ -58,25 +58,23 @@ impl Default for Graph {
 
 impl Graph {
     /// Add a node to the graph.
-    pub fn add_node(&mut self, node: Box<dyn Node>) -> NodeIndex {
+    pub fn add_node(&mut self, node: impl Node + 'static + Send) -> NodeIndex {
         let (snd, rcv) = mpsc::channel(1);
         let nc: NodeContainer = NodeContainer {
-            node,
-            handle: task::spawn(node.run(rcv)),
+            handle: task::spawn(async move { node.run(rcv).await }),
             cmd_channel: snd,
         };
         self.0.add_node(nc)
     }
-
-    /// Remove a node from the graph, returning the node, if it exists.
-    pub async fn remove_node(&mut self, i: NodeIndex) -> bool {
+    /// Shutdown and Remove a node from the graph
+    pub async fn remove_node(&mut self, i: NodeIndex) -> anyhow::Result<()> {
         let maybe_nc = self.0.remove_node(i);
         match maybe_nc {
             Some(nc) => {
-                nc.cmd_channel.send(NodeCtrl::Shutdown).await;
-                nc.handle.await.is_ok()
+                nc.cmd_channel.send(NodeCtrl::Shutdown).await?;
+                Ok(nc.handle.await?)
             }
-            None => false,
+            None => anyhow::bail!("Node not found"),
         }
     }
 
@@ -93,9 +91,9 @@ impl Graph {
     /// Add an edge between two ports.
     pub fn add_edge(
         &mut self,
-        a: NodeIndex,
-        b: NodeIndex,
-        edge: Edge,
+        _a: NodeIndex,
+        _b: NodeIndex,
+        _edge: Edge,
     ) -> anyhow::Result<EdgeIndex> {
         todo!()
     }

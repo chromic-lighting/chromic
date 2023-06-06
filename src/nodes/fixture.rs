@@ -5,7 +5,8 @@
 use opengdtf;
 use std::fs::File;
 
-use crate::graph::Node;
+use crate::graph::{self, Node};
+use tokio::sync::mpsc;
 
 /// Represents a fixture in the graph.
 pub struct Fixture {}
@@ -18,7 +19,11 @@ impl Default for Fixture {
 
 // TODO
 #[async_trait::async_trait]
-impl Node for Fixture {}
+impl Node for Fixture {
+    async fn run(&self, cmd_chan: mpsc::Receiver<graph::NodeCtrl>) {
+        let _ = cmd_chan;
+    }
+}
 
 /// A wrapper around File that holds GDTF files.
 pub struct GDTFFile(File);

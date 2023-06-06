@@ -1,5 +1,7 @@
 //! TODO!: A static colour.
 
+use tokio::sync::mpsc;
+
 use crate::graph;
 use crate::graph::data_types::Colour;
 
@@ -7,7 +9,11 @@ use crate::graph::data_types::Colour;
 pub struct StaticColour(Colour);
 
 #[async_trait::async_trait]
-impl graph::Node for StaticColour {}
+impl graph::Node for StaticColour {
+    async fn run(&self, cmd_chan: mpsc::Receiver<graph::NodeCtrl>) {
+        let _ = cmd_chan;
+    }
+}
 
 /// Black by default
 impl Default for StaticColour {
