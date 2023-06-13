@@ -21,7 +21,7 @@ pub mod update;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let mut g = graph::Graph::new();
-    let (cmd_send, cmd_recv): (
+    let (cmd_send, mut cmd_recv): (
         mpsc::Sender<command::Command>,
         mpsc::Receiver<command::Command>,
     ) = mpsc::channel(200);
@@ -36,6 +36,6 @@ async fn main() -> anyhow::Result<()> {
         let _ = gui_channel;
     });
 
-    g.run(&cmd_recv).await?;
+    g.run(&mut cmd_recv).await?;
     Ok(())
 }

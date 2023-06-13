@@ -13,6 +13,8 @@ use tokio::{
     task,
 };
 
+use futures::{stream::FuturesUnordered, StreamExt};
+
 pub mod data_types;
 
 #[derive(Debug)]
@@ -66,6 +68,7 @@ impl Graph {
         };
         self.0.add_node(nc)
     }
+
     /// Shutdown and Remove a node from the graph
     pub async fn remove_node(&mut self, i: NodeIndex) -> anyhow::Result<()> {
         let maybe_nc = self.0.remove_node(i);
@@ -76,6 +79,15 @@ impl Graph {
             }
             None => anyhow::bail!("Node not found"),
         }
+    }
+
+    pub async fn remove_all_nodes(&mut self) -> Vec<Result<(), mpsc::error::SendError<NodeCtrl>>> {
+        self.0
+            .node_weights()
+            .map(|nc| nc.cmd_channel.send(NodeCtrl::Shutdown))
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await
     }
 
     /// Get a specified node from the graph without removing it.
@@ -100,7 +112,7 @@ impl Graph {
 
     /// Remove all edges from the graph, e.g. disconnect everything from everything else.
     pub fn clear_edges(&mut self) {
-        self.0.clear_edges();
+        todo!();
     }
 
     pub fn get_nodes(&self) -> impl Iterator<Item = &NodeContainer> {
