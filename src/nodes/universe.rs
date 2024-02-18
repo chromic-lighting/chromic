@@ -1,16 +1,14 @@
 //! TODO!: Implements a single DMX Universe
 
-use crate::graph::Node;
+use crate::graph::{self, Node};
+use tokio::sync::mpsc;
 
 pub struct Universe {}
 
+#[async_trait::async_trait]
 impl Node for Universe {
-    fn get_ports(&self) -> std::collections::HashMap<crate::graph::PortID, crate::graph::Port> {
-        todo!()
-    }
-
-    fn has_port(&self, _id: &crate::graph::PortID) -> bool {
-        todo!()
+    async fn run(&self, cmd_chan: mpsc::Receiver<graph::NodeCtrl>) {
+        let _ = cmd_chan;
     }
 }
 

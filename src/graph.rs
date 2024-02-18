@@ -4,44 +4,46 @@ use petgraph::{
     stable_graph::{EdgeIndex, NodeIndex, StableGraph},
     Directed,
 };
-use std::collections::HashMap;
 
+use async_trait::async_trait;
 use smol_str::SmolStr;
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-/// A unique identifier for each port on a node.
-pub struct PortID {
-    pub id: SmolStr,
-    pub direction: PortDirection,
-}
+use tokio::{
+    sync::{mpsc, oneshot, watch},
+    task,
+};
 
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-/// Marks the direction of data flow through a port. A port can either be Input or Output.
-pub enum PortDirection {
-    Input,
-    Output,
-}
+use futures::{stream::FuturesUnordered, StreamExt};
+
+pub mod data_types;
 
 #[derive(Debug)]
-pub struct Port {}
-
-pub trait Node {
-    fn get_ports(&self) -> HashMap<PortID, Port>;
-    fn has_port(&self, id: &PortID) -> bool;
+pub enum NodeCtrl {
+    SetChannel(SmolStr, watch::Receiver<data_types::Data>),
+    GetChannel(SmolStr, oneshot::Sender<watch::Receiver<data_types::Data>>),
+    Shutdown,
 }
 
-use std::fmt;
-impl fmt::Debug for dyn Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Test implementation of debug")
-    }
+/**
+Common trait for all nodes in the graph.
+
+All nodes in the graph must implement Node.
+ */
+#[async_trait]
+pub trait Node: Sync {
+    async fn run(&self, cmd_chan: mpsc::Receiver<NodeCtrl>);
+}
+
+pub struct NodeContainer {
+    handle: task::JoinHandle<()>,
+    cmd_channel: mpsc::Sender<NodeCtrl>,
 }
 
 /// An edge is a connection between two ports.
-pub struct Edge(pub PortID, pub PortID);
+pub struct Edge(pub SmolStr, pub SmolStr);
 
 /// A graph is a collection of nodes and edges.
-pub struct Graph(StableGraph<Box<dyn Node>, Edge, Directed>);
+pub struct Graph(StableGraph<NodeContainer, Edge, Directed>);
 
 impl Graph {
     /// Create a new, empty graph.
@@ -58,168 +60,73 @@ impl Default for Graph {
 
 impl Graph {
     /// Add a node to the graph.
-    pub fn add_node(&mut self, node: Box<dyn Node>) -> NodeIndex {
-        self.0.add_node(node)
+    pub fn add_node(&mut self, node: impl Node + 'static + Send) -> NodeIndex {
+        let (snd, rcv) = mpsc::channel(1);
+        let nc: NodeContainer = NodeContainer {
+            handle: task::spawn(async move { node.run(rcv).await }),
+            cmd_channel: snd,
+        };
+        self.0.add_node(nc)
     }
 
-    /// Remove a node from the graph, returning the node, if it exists.
-    pub fn remove_node(&mut self, i: NodeIndex) -> Option<Box<dyn Node>> {
-        self.0.remove_node(i)
+    /// Shutdown and Remove a node from the graph
+    pub async fn remove_node(&mut self, i: NodeIndex) -> anyhow::Result<()> {
+        let maybe_nc = self.0.remove_node(i);
+        match maybe_nc {
+            Some(nc) => {
+                nc.cmd_channel.send(NodeCtrl::Shutdown).await?;
+                Ok(nc.handle.await?)
+            }
+            None => anyhow::bail!("Node not found"),
+        }
+    }
+
+    pub async fn remove_all_nodes(&mut self) -> Vec<Result<(), mpsc::error::SendError<NodeCtrl>>> {
+        self.0
+            .node_weights()
+            .map(|nc| nc.cmd_channel.send(NodeCtrl::Shutdown))
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await
     }
 
     /// Get a specified node from the graph without removing it.
-    pub fn get_node(&self, i: NodeIndex) -> Option<&dyn Node> {
-        self.0.node_weight(i).map(|n| n.as_ref())
+    pub fn get_node(&self, i: NodeIndex) -> Option<&NodeContainer> {
+        self.0.node_weight(i)
     }
 
     /// Mutably get a specified node from the graph without removing it.
-    pub fn get_mut_node(&mut self, i: NodeIndex) -> Option<&mut (dyn Node + 'static)> {
-        self.0.node_weight_mut(i).map(|n| n.as_mut())
+    pub fn get_mut_node(&mut self, i: NodeIndex) -> Option<&mut NodeContainer> {
+        self.0.node_weight_mut(i)
     }
 
     /// Add an edge between two ports.
     pub fn add_edge(
         &mut self,
-        a: NodeIndex,
-        b: NodeIndex,
-        edge: Edge,
+        _a: NodeIndex,
+        _b: NodeIndex,
+        _edge: Edge,
     ) -> anyhow::Result<EdgeIndex> {
-        match (self.get_node(a), self.get_node(b)) {
-            (None, _) => anyhow::bail!("Node A doesn't exist"),
-            (_, None) => anyhow::bail!("Node B doesn't exist"),
-            (Some(node_a), Some(node_b)) => {
-                match (node_a.has_port(&edge.0), node_b.has_port(&edge.1)) {
-                    (false, _) => anyhow::bail!("Output port doesn't exist"),
-                    (_, false) => anyhow::bail!("input port doesn't exist"),
-                    (true, true) => Ok(self.0.add_edge(a, b, edge)),
-                }
-            }
-        }
+        todo!()
     }
 
     /// Remove all edges from the graph, e.g. disconnect everything from everything else.
     pub fn clear_edges(&mut self) {
-        self.0.clear_edges();
-    }
-}
-
-impl Node for Box<dyn Node> {
-    fn get_ports(&self) -> HashMap<PortID, Port> {
-        self.as_ref().get_ports()
+        todo!();
     }
 
-    fn has_port(&self, id: &PortID) -> bool {
-        self.as_ref().has_port(id)
+    pub fn get_nodes(&self) -> impl Iterator<Item = &NodeContainer> {
+        self.0.node_weights()
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
     fn creating_new_graph_doesnt_panic() {
         let _ = Graph::new();
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct SimpleNode {}
-    impl Node for SimpleNode {
-        fn get_ports(&self) -> HashMap<PortID, Port> {
-            HashMap::from([
-                (
-                    PortID {
-                        id: "out".into(),
-                        direction: PortDirection::Output,
-                    },
-                    Port {},
-                ),
-                (
-                    PortID {
-                        id: "in".into(),
-                        direction: PortDirection::Input,
-                    },
-                    Port {},
-                ),
-            ])
-        }
-
-        fn has_port(&self, id: &PortID) -> bool {
-            if (id.id == SmolStr::from("out") && id.direction == PortDirection::Output)
-                || (id.id == SmolStr::from("in") && id.direction == PortDirection::Input)
-            {
-                true
-            } else {
-                false
-            }
-        }
-    }
-
-    macro_rules! assert_simplenode {
-        ($n:ident) => {
-            assert!(
-                $n.has_port(&PortID {
-                    id: "in".into(),
-                    direction: PortDirection::Input
-                }) && $n.has_port(&PortID {
-                    id: "in".into(),
-                    direction: PortDirection::Input
-                })
-            )
-        };
-    }
-
-    #[test]
-    fn create_graph_and_add_node() {
-        let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(SimpleNode {}));
-        let node = graph.remove_node(n1).unwrap();
-        assert_simplenode!(node);
-    }
-    #[test]
-    fn test_get_node() {
-        let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(SimpleNode {}));
-        let node = graph.get_node(n1).unwrap();
-        assert_simplenode!(node);
-    }
-    #[test]
-    fn test_get_mut_node() {
-        let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(SimpleNode {}));
-        let node = graph.get_mut_node(n1).unwrap();
-        assert_simplenode!(node);
-    }
-    #[test]
-    fn create_graph_and_add_2_nodes() {
-        let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(SimpleNode {}));
-        let n2 = graph.add_node(Box::new(SimpleNode {}));
-        let node1 = graph.remove_node(n1).unwrap();
-        let node2 = graph.remove_node(n2).unwrap();
-        assert_simplenode!(node1);
-        assert_simplenode!(node2);
-    }
-    #[test]
-    fn create_edge() {
-        let mut graph = Graph::new();
-        let n1 = graph.add_node(Box::new(SimpleNode {}));
-        let n2 = graph.add_node(Box::new(SimpleNode {}));
-        let _ = graph
-            .add_edge(
-                n1,
-                n2,
-                Edge(
-                    PortID {
-                        id: "out".into(),
-                        direction: PortDirection::Output,
-                    },
-                    PortID {
-                        id: "in".into(),
-                        direction: PortDirection::Input,
-                    },
-                ),
-            )
-            .unwrap();
     }
 }

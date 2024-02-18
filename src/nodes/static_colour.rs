@@ -1,26 +1,27 @@
 //! TODO!: A static colour.
 
-use crate::graph::Node;
+use tokio::sync::mpsc;
+
+use crate::graph;
+use crate::graph::data_types::Colour;
 
 /// Contains a colour as defined in the CIE XYZ Colour space.
-pub struct StaticColour {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
+pub struct StaticColour(Colour);
 
-impl Node for StaticColour {
-    fn get_ports(&self) -> std::collections::HashMap<crate::graph::PortID, crate::graph::Port> {
-        todo!()
-    }
-
-    fn has_port(&self, _id: &crate::graph::PortID) -> bool {
-        todo!()
+#[async_trait::async_trait]
+impl graph::Node for StaticColour {
+    async fn run(&self, cmd_chan: mpsc::Receiver<graph::NodeCtrl>) {
+        let _ = cmd_chan;
     }
 }
 
+/// Black by default
 impl Default for StaticColour {
     fn default() -> Self {
-        todo!()
+        Self(Colour {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        })
     }
 }

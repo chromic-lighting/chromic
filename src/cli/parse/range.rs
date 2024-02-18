@@ -1,17 +1,11 @@
 //! Parsing ranges of the form "{X Thru Y - Z Thru A + B}"
 
+use crate::command::*;
 use nom::{
     branch::alt, bytes::complete as bc, character::complete as cc, combinator as c, multi as m,
     sequence as s, IResult,
 };
 use std::{collections::HashSet, ops::RangeInclusive};
-
-/// A range either to be included, or not included in a selection
-#[derive(PartialEq, Debug, Clone)]
-pub enum RangeType {
-    Add(RangeInclusive<u64>),
-    Sub(RangeInclusive<u64>),
-}
 
 /// A Range of the form "X Thru Y"
 fn range(i: &str) -> IResult<&str, RangeInclusive<u64>> {
@@ -42,10 +36,6 @@ impl RangeType {
         ))(i)
     }
 }
-
-/// A selection of Items
-#[derive(Debug, Clone, PartialEq)]
-pub struct ItemSelection(Vec<RangeType>);
 
 impl ItemSelection {
     pub fn parse(i: &str) -> IResult<&str, Self> {

@@ -1,18 +1,19 @@
 //! Parsing and execution of Command Line Interface
 //!
 //! ## Example Commands
-//! - Set Fixture {15 Thru 19 + 22 Thru 36} at {D: 15, G: G7, Z: 15}
-//! - Set Group {2} at {D: 15}
-//! - Connect Handle 1.1.7 At Cue 17
-//! - Clear
-//! - Connect Cue 5 At Group 7
-//! - Select Cue 7
-//! - Select Programmer 1
-//! - SelFix {15 Thru 27}
-//! - Create Cue 7
+//! - Delete Fixture 15
+//! - Delete Cue 17.5
+//! - Delete Preset 15
+//! - Load <Graphlayout>
+//! - Connect Fixture 15 output Universe 2 input
+//! - Set Fixture 5 input <Values>
+//! - Set Preset 1 input <Values>
+//! - Graph
+//! - Shutdown
 
 pub mod range;
-use range::*;
+
+use crate::command::*;
 
 use anyhow::Result;
 use nom::{
@@ -22,35 +23,10 @@ use nom::{
 
 use crate::graph;
 
-/// An ID for a physical handle on some hardware, e.g. MIDI controller or keyboard.
-#[derive(Debug, Clone, PartialEq)]
-pub struct HandleID {
-    controller: usize,
-    section: usize,
-    page: usize,
-    handle: usize,
-}
-
-impl HandleID {
-    pub fn parse(i: &str) -> IResult<&str, Self> {
-        c::map(m::separated_list1(bc::tag("."), cc::u64), Self::from)(i)
-    }
-}
-
 impl From<Vec<u64>> for HandleID {
     fn from(_value: Vec<u64>) -> Self {
         todo!()
     }
-}
-
-/// An item to be operated on, e.g. a Fixture or Cue (Something that implements Node)
-#[derive(Clone, Debug, PartialEq)]
-pub enum Operand {
-    Fixture(ItemSelection),
-    Universe(ItemSelection),
-    Cue(ItemSelection),
-    Programmer(ItemSelection),
-    Handle(HandleID),
 }
 
 /// Parse a single type of Operator
@@ -76,22 +52,6 @@ impl Operand {
     }
 }
 
-/// A const set of paramaters
-#[derive(Debug, PartialEq)]
-pub struct Values {} // TODO: Figure out API
-
-/// A Command to be executed
-#[derive(Debug, PartialEq)]
-pub enum Command {
-    Clear(Operand),
-    Connect, // TODO: Figure out API
-    DeSelFix(Operand),
-    DeSelect(Operand),
-    SelFix(Operand),
-    Select(Operand),
-    Set(Operand, Values),
-}
-
 impl Command {
     pub fn parse(i: &str) -> IResult<&str, Self> {
         alt((
@@ -111,6 +71,31 @@ impl Command {
         todo!()
     }
 }
+
+/// An ID for a physical handle on some hardware, e.g. MIDI controller or keyboard.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HandleID {
+    controller: usize,
+    section: usize,
+    page: usize,
+    handle: usize,
+}
+impl HandleID {
+    pub fn parse(i: &str) -> IResult<&str, Self> {
+        c::map(m::separated_list1(bc::tag("."), cc::u64), Self::from)(i)
+    }
+}
+
+/// A range either to be included, or not included in a selection
+#[derive(PartialEq, Debug, Clone)]
+pub enum RangeType {
+    Add(RangeInclusive<u64>),
+    Sub(RangeInclusive<u64>),
+}
+
+/// A selection of Items
+#[derive(Debug, Clone, PartialEq)]
+pub struct ItemSelection(pub Vec<RangeType>);
 
 #[cfg(test)]
 mod tests {
