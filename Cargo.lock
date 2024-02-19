@@ -343,7 +343,7 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "opengdtf"
 version = "0.1.0"
-source = "git+https://github.com/Firionus/opengdtf#995e1d98df82525ca6fb8cdc9c545c09680cf9d4"
+source = "git+https://github.com/Firionus/opengdtf#a92512084380fab5ee8d4eb1ec29aafaef2e5d57"
 dependencies = [
  "delegate",
  "derive_more",
