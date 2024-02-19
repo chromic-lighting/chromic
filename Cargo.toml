@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.71"
 petgraph = { version = "0.6.3", features = ["stable_graph"] }
-smol_str = "0.2.0"
+smol_str = "0.2.1"
 
 # Needed for GDTF parsing
 opengdtf = { git = "https://github.com/Firionus/opengdtf"}
